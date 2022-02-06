@@ -70,12 +70,29 @@ server.get("/transaction-record", async (req,res) => {
     } else {
       res.sendStatus(401);
     }
-        
+
     } catch (error) {
         console.log(error);
         res.sendStatus(500);
     }
 });
+
+server.post("/handleInput", async (req, res)=>{
+    const newTransaction = req.body;
+    console.log(newTransaction);
+    if(!newTransaction) {
+        return res.sendStatus(401);
+    };
+
+    try {
+        //await db.collection("userRecordTransaction").insertOne(newTransaction);
+        res.sendStatus(201);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+
+})
 
 server.listen(5000, ()=>{
     console.log("Listening on port 5000")
