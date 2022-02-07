@@ -1,6 +1,7 @@
 import Express, { json } from "express";
 import {MongoClient} from 'mongodb';
 import cors from "cors";
+import dayjs from "dayjs";
 import dotenv from "dotenv";
 import bcrypt from 'bcrypt';
 import { v4 as uuid } from 'uuid';
@@ -18,6 +19,8 @@ server.use(json());
 
 server.post("/sign-up", async (req, res)=> {
     const userData = req.body; // nome, email, senha
+    userData.recordTransaction = [];
+
     const passwordHash = bcrypt.hashSync(userData.password, 10);
     try {
         await db.collection('users').insertOne({ ...userData, password: passwordHash });
@@ -65,27 +68,47 @@ server.get("/transaction-record", async (req,res) => {
         return res.sendStatus(401);
     }
     const user = await db.collection("users").findOne({ _id: session.userId });
-    if(user) {
-      res.send("response with token validation working alright!!! Just put the others data in new collections...")
-    } else {
-      res.sendStatus(401);
+    if(!user) {
+        res.sendStatus(401);
+    }
+    console.log(user);
+    res.send("response with token validation working alright!!! Just put the others data in new collections...")
     }
 
-    } catch (error) {
+    catch (error) {
         console.log(error);
         res.sendStatus(500);
     }
 });
 
-server.post("/handleInput", async (req, res)=>{
+server.post("/sendTransaction", async (req, res)=>{
     const newTransaction = req.body;
-    console.log(newTransaction);
-    if(!newTransaction) {
+    const { authorization } = req.headers;
+    const token = authorization?.replace('Bearer ', '');
+
+    if(!newTransaction || !token) {
         return res.sendStatus(401);
-    };
+    }
+
+    const replacer = (dayjs().format("MM-DD")).replace("-", "/");
+    newTransaction.time = replacer;
 
     try {
-        //await db.collection("userRecordTransaction").insertOne(newTransaction);
+        const session = await db.collection("sessions").findOne({ token });  
+        if (!session) {
+            return res.sendStatus(401);
+        }
+        const user = await db.collection("users").findOne({ _id: session.userId });
+        if(!user) {
+            return res.sendStatus(401);
+        }
+        const addedTransation = [...user.recordTransaction, newTransaction];
+        await db.collection("users").updateOne(
+            { _id: user._id } ,
+            {$set:
+                {"recordTransaction" : addedTransation}
+        });
+
         res.sendStatus(201);
     } catch (error) {
         console.log(error);
