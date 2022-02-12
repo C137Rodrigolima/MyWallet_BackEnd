@@ -15,6 +15,6 @@ server.get("/transaction-record", getTransactions);
 
 server.post("/sendTransaction", postTransactions)
 
-server.listen(5000, ()=>{
-    console.log("Listening on port 5000")
+server.listen(process.env.PORT, ()=>{
+    console.log(`Listening on port ${process.env.PORT}`)
 });
